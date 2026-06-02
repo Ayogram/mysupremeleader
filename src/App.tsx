@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
-import { Pause, Play, Heart, Sparkles, ChevronRight, X, Music, RotateCcw } from 'lucide-react';
+import { Pause, Play, Heart, Sparkles, X, Music, RotateCcw } from 'lucide-react';
 import { memories, timelineEvents, reasons, interactiveMemories } from './data';
 
 function App() {
@@ -62,7 +62,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    let timeout: NodeJS.Timeout;
+    let timeout: any;
     const currentMemory = memories[currentSlide];
     
     // Only use a fixed timer if the current slide is an image
