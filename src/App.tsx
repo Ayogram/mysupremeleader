@@ -202,7 +202,7 @@ function App() {
         </audio>
       </div>
 
-      <main className="relative z-10 w-[90%] md:w-[80%] max-w-7xl mx-auto">
+      <main className="relative z-10">
         {/* 1. Hero Landing Page */}
         <section className="h-screen flex flex-col items-center justify-center px-4 relative overflow-hidden">
           {/* Background Image specifically for the first page */}
