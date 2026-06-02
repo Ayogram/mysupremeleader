@@ -289,6 +289,7 @@ function App() {
                       autoPlay 
                       muted 
                       playsInline
+                      preload="auto"
                       onLoadedMetadata={(e) => {
                         e.currentTarget.play().catch(err => console.log("Slideshow video play failed:", err));
                       }}
@@ -707,6 +708,7 @@ function App() {
                         src="/thevideo.MP4"
                         autoPlay
                         playsInline
+                        preload="auto"
                         className="w-full h-full object-contain"
                         onLoadedMetadata={(e) => {
                           e.currentTarget.play().catch(err => console.log("Fullscreen video play failed:", err));
@@ -769,6 +771,15 @@ function App() {
             )}
           </AnimatePresence>
         </section>
+        {/* Background preloading for all slideshow and transition videos to make them load instantly */}
+        <div className="hidden" aria-hidden="true">
+          {memories.map((m) => (
+            (m.image.toLowerCase().endsWith('.mp4') || m.image.toLowerCase().endsWith('.mov')) && (
+              <video key={`preload-${m.id}`} src={m.image} preload="auto" muted playsInline />
+            )
+          ))}
+          <video src="/thevideo.MP4" preload="auto" muted playsInline />
+        </div>
       </main>
     </div>
   );
