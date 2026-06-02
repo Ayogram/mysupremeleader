@@ -66,7 +66,7 @@ function App() {
     const currentMemory = memories[currentSlide];
     
     // Only use a fixed timer if the current slide is an image
-    if (!currentMemory.image.endsWith('.mp4')) {
+    if (!currentMemory.image.toLowerCase().endsWith('.mp4') && !currentMemory.image.toLowerCase().endsWith('.mov')) {
       timeout = setTimeout(() => {
         setCurrentSlide((prev) => (prev + 1) % memories.length);
       }, 10000); // 10 seconds for pictures
@@ -202,7 +202,7 @@ function App() {
         </audio>
       </div>
 
-      <main className="relative z-10">
+      <main className="relative z-10 w-[90%] md:w-[80%] max-w-7xl mx-auto">
         {/* 1. Hero Landing Page */}
         <section className="h-screen flex flex-col items-center justify-center px-4 relative overflow-hidden">
           {/* Background Image specifically for the first page */}
@@ -283,12 +283,15 @@ function App() {
                   transition={{ duration: 1.5, ease: "easeInOut" }}
                   className="absolute inset-0"
                 >
-                  {memories[currentSlide].image.endsWith('.mp4') ? (
+                  {memories[currentSlide].image.toLowerCase().endsWith('.mp4') || memories[currentSlide].image.toLowerCase().endsWith('.mov') ? (
                     <video 
                       src={memories[currentSlide].image} 
                       autoPlay 
                       muted 
                       playsInline
+                      onLoadedMetadata={(e) => {
+                        e.currentTarget.play().catch(err => console.log("Slideshow video play failed:", err));
+                      }}
                       onEnded={() => setCurrentSlide((prev) => (prev + 1) % memories.length)}
                       className="w-full h-full object-cover"
                     />
@@ -702,7 +705,12 @@ function App() {
                       <video
                         ref={videoRef}
                         src="/thevideo.MP4"
+                        autoPlay
+                        playsInline
                         className="w-full h-full object-contain"
+                        onLoadedMetadata={(e) => {
+                          e.currentTarget.play().catch(err => console.log("Fullscreen video play failed:", err));
+                        }}
                         onPlay={() => setVideoPlaying(true)}
                         onPause={() => setVideoPlaying(false)}
                         onEnded={() => setVideoPlaying(false)}
