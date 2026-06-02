@@ -30,7 +30,6 @@ function App() {
       } else {
         audioRef.current.volume = 1.0;
         if (!hasInitializedAudio.current) {
-          audioRef.current.currentTime = 20;
           hasInitializedAudio.current = true;
         }
         audioRef.current.play().catch(err => console.log("Play failed: ", err));
@@ -43,7 +42,6 @@ function App() {
     const handleFirstInteraction = () => {
       if (audioRef.current && !hasInitializedAudio.current) {
         audioRef.current.volume = 1.0;
-        audioRef.current.currentTime = 20;
         hasInitializedAudio.current = true;
         audioRef.current.play()
           .then(() => setIsPlaying(true))
@@ -199,7 +197,7 @@ function App() {
             </span>
           )}
         </button>
-        <audio ref={audioRef} loop>
+        <audio ref={audioRef} loop autoPlay>
           <source src="/do-better-blues.mp3" type="audio/mpeg" />
         </audio>
       </div>
