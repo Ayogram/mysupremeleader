@@ -22,6 +22,40 @@ function App() {
 
   const hasInitializedAudio = useRef(false);
 
+  const acceptProposal = () => {
+    setProposalAccepted(true);
+    if (videoRef.current) {
+      videoRef.current.play()
+        .then(() => {
+          videoRef.current.pause();
+          videoRef.current.currentTime = 0;
+        })
+        .catch(err => console.log("Video unlock failed:", err));
+    }
+  };
+
+  // iOS preloader and HTTP caching optimizer
+  useEffect(() => {
+    const assets = [
+      '/D8.mp4',
+      '/D5.mp4',
+      '/D1.mp4',
+      '/thevideo.MP4',
+      '/do-better-blues.mp3',
+      '/firstd.jpg',
+      '/thesimplethings.jpg',
+      '/checking-out.jpg',
+      '/D10.jpg',
+      '/D2.jpg',
+      '/D20.jpg'
+    ];
+    assets.forEach(url => {
+      fetch(url, { cache: 'force-cache' })
+        .then(res => res.blob())
+        .catch(err => console.log(`Preloading failed for ${url}:`, err));
+    });
+  }, []);
+
   const togglePlay = () => {
     if (audioRef.current) {
       if (isPlaying) {
@@ -579,7 +613,7 @@ function App() {
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      onClick={() => setProposalAccepted(true)}
+                      onClick={acceptProposal}
                       className="px-12 py-5 bg-white text-brand-900 rounded-full text-xl font-medium shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:shadow-[0_0_50px_rgba(255,255,255,0.5)] transition-all duration-300 w-full sm:w-auto"
                     >
                       Yes 💜
@@ -587,7 +621,7 @@ function App() {
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      onClick={() => setProposalAccepted(true)}
+                      onClick={acceptProposal}
                       className="px-12 py-5 bg-gradient-to-r from-brand-600 to-brand-800 text-white rounded-full text-xl font-medium shadow-[0_0_30px_rgba(124,58,237,0.4)] hover:shadow-[0_0_50px_rgba(124,58,237,0.7)] transition-all duration-300 w-full sm:w-auto border border-brand-400/50"
                     >
                       Absolutely Yes, my loyal subject 💜
@@ -694,83 +728,77 @@ function App() {
                       </motion.div>
                     </motion.div>
                   )}
-
-                  {acceptedStep === 'video' && (
-                    <motion.div
-                      key="video"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center"
-                    >
-                      <video
-                        ref={videoRef}
-                        src="/thevideo.MP4"
-                        autoPlay
-                        playsInline
-                        preload="auto"
-                        className="w-full h-full object-contain"
-                        onLoadedMetadata={(e) => {
-                          e.currentTarget.play().catch(err => console.log("Fullscreen video play failed:", err));
-                        }}
-                        onPlay={() => setVideoPlaying(true)}
-                        onPause={() => setVideoPlaying(false)}
-                        onEnded={() => setVideoPlaying(false)}
-                      />
-                      
-                      {/* Video Custom Controls */}
-                      <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 flex items-center gap-4 bg-zinc-900/80 backdrop-blur-md px-6 py-4 rounded-2xl border border-brand-500/20 shadow-2xl z-50">
-                        <button
-                          onClick={() => {
-                            if (videoRef.current) {
-                              if (videoPlaying) {
-                                videoRef.current.pause();
-                              } else {
-                                videoRef.current.play().catch(err => console.log(err));
-                              }
-                            }
-                          }}
-                          className="p-3 bg-brand-500/20 hover:bg-brand-500/40 border border-brand-500/30 rounded-xl text-white transition-colors"
-                          title={videoPlaying ? "Pause" : "Play"}
-                        >
-                          {videoPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
-                        </button>
-                        
-                        <button
-                          onClick={() => {
-                            if (videoRef.current) {
-                              videoRef.current.currentTime = 0;
-                              videoRef.current.play().catch(err => console.log(err));
-                              setVideoPlaying(true);
-                            }
-                          }}
-                          className="p-3 bg-brand-500/20 hover:bg-brand-500/40 border border-brand-500/30 rounded-xl text-white transition-colors flex items-center gap-2"
-                          title="Restart"
-                        >
-                          <RotateCcw className="w-6 h-6" />
-                          <span className="hidden sm:inline text-sm font-medium">Restart</span>
-                        </button>
-                        
-                        <div className="h-6 w-[1px] bg-brand-500/30"></div>
-                        
-                        <button
-                          onClick={() => {
-                            setAcceptedStep('success');
-                          }}
-                          className="p-3 bg-red-500/20 hover:bg-red-500/40 border border-red-500/30 rounded-xl text-white transition-colors flex items-center gap-2"
-                          title="Exit Video"
-                        >
-                          <X className="w-6 h-6" />
-                          <span className="hidden sm:inline text-sm font-medium">Exit</span>
-                        </button>
-                      </div>
-                    </motion.div>
-                  )}
                 </AnimatePresence>
               </motion.div>
             )}
           </AnimatePresence>
         </section>
+
+        {/* Fullscreen Video Portal/Overlay (Always in DOM to unlock for iOS/Safari WebKit) */}
+        <div 
+          className={`fixed inset-0 z-50 bg-black flex flex-col items-center justify-center transition-all duration-500 ${
+            acceptedStep === 'video' ? 'opacity-100 pointer-events-auto scale-100' : 'opacity-0 pointer-events-none scale-95'
+          }`}
+        >
+          <video
+            ref={videoRef}
+            src="/thevideo.MP4"
+            playsInline
+            preload="auto"
+            className="w-full h-full object-contain"
+            onPlay={() => setVideoPlaying(true)}
+            onPause={() => setVideoPlaying(false)}
+            onEnded={() => setVideoPlaying(false)}
+          />
+          
+          {/* Video Custom Controls */}
+          <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 flex items-center gap-4 bg-zinc-900/80 backdrop-blur-md px-6 py-4 rounded-2xl border border-brand-500/20 shadow-2xl z-50">
+            <button
+              onClick={() => {
+                if (videoRef.current) {
+                  if (videoPlaying) {
+                    videoRef.current.pause();
+                  } else {
+                    videoRef.current.play().catch(err => console.log(err));
+                  }
+                }
+              }}
+              className="p-3 bg-brand-500/20 hover:bg-brand-500/40 border border-brand-500/30 rounded-xl text-white transition-colors"
+              title={videoPlaying ? "Pause" : "Play"}
+            >
+              {videoPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
+            </button>
+            
+            <button
+              onClick={() => {
+                if (videoRef.current) {
+                  videoRef.current.currentTime = 0;
+                  videoRef.current.play().catch(err => console.log(err));
+                  setVideoPlaying(true);
+                }
+              }}
+              className="p-3 bg-brand-500/20 hover:bg-brand-500/40 border border-brand-500/30 rounded-xl text-white transition-colors flex items-center gap-2"
+              title="Restart"
+            >
+              <RotateCcw className="w-6 h-6" />
+              <span className="hidden sm:inline text-sm font-medium">Restart</span>
+            </button>
+            
+            <div className="h-6 w-[1px] bg-brand-500/30"></div>
+            
+            <button
+              onClick={() => {
+                setAcceptedStep('success');
+              }}
+              className="p-3 bg-red-500/20 hover:bg-red-500/40 border border-red-500/30 rounded-xl text-white transition-colors flex items-center gap-2"
+              title="Exit Video"
+            >
+              <X className="w-6 h-6" />
+              <span className="hidden sm:inline text-sm font-medium">Exit</span>
+            </button>
+          </div>
+        </div>
+
         {/* Background preloading for all slideshow and transition videos to make them load instantly */}
         <div className="hidden" aria-hidden="true">
           {memories.map((m) => (
