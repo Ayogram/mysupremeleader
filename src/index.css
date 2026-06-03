@@ -22,13 +22,26 @@
 
 @layer utilities {
   .glass-card {
-    @apply bg-white/5 backdrop-blur-md border border-white/10 shadow-xl rounded-2xl;
+    @apply bg-zinc-900/80 border border-white/5 shadow-xl rounded-2xl;
+    backdrop-filter: blur(12px);
+    will-change: transform, opacity;
+  }
+  @media (max-width: 1024px) {
+    .glass-card {
+      @apply bg-zinc-900/95;
+      backdrop-filter: none;
+    }
+  }
+  .gpu-accelerated {
+    will-change: transform;
+    transform: translate3d(0, 0, 0);
   }
   .preserve-3d {
     transform-style: preserve-3d;
   }
   .backface-hidden {
     backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
   }
   .rotate-y-180 {
     transform: rotateY(180deg);

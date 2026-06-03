@@ -11,8 +11,20 @@ function App() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [hasStarted, setHasStarted] = useState(false);
 
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   const { scrollYProgress } = useScroll();
-  const backgroundY = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
+  const backgroundYVal = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
+  const backgroundY = isMobile ? "0%" : backgroundYVal;
 
   const [acceptedStep, setAcceptedStep] = useState<'success' | 'countdown' | 'video'>('success');
   const [countdown, setCountdown] = useState(5);
@@ -226,20 +238,21 @@ function App() {
       {/* Dynamic Decorative Background Elements (Global) */}
       <motion.div 
         style={{ y: backgroundY }}
-        className="fixed inset-0 pointer-events-none z-0 overflow-hidden"
+        className="fixed inset-0 pointer-events-none z-0 overflow-hidden gpu-accelerated"
       >
         <img 
           src="/checking-out.jpg" 
           alt="Beautiful background"
           className="absolute inset-0 w-full h-full object-cover opacity-80"
+          style={{ willChange: 'transform' }}
         />
         <div className="absolute inset-0 bg-zinc-950/60"></div>
         {/* Subtle decorative purple aura to blend it perfectly */}
         <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-brand-900/20 rounded-full blur-[150px] mix-blend-screen"></div>
         <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-brand-600/10 rounded-full blur-[150px] mix-blend-screen"></div>
         
-        {/* Floating background decorative particles */}
-        {[...Array(15)].map((_, i) => (
+        {/* Floating background decorative particles - disabled on mobile for performance */}
+        {!isMobile && [...Array(15)].map((_, i) => (
           <motion.div
             key={`particle-${i}`}
             className="absolute rounded-full bg-brand-400/20"
@@ -248,6 +261,7 @@ function App() {
               height: Math.random() * 6 + 2 + 'px',
               top: Math.random() * 100 + '%',
               left: Math.random() * 100 + '%',
+              willChange: 'transform, opacity'
             }}
             animate={{
               y: [0, Math.random() * -100 - 50],
@@ -405,7 +419,8 @@ function App() {
                         playsInline
                         preload="auto"
                         onEnded={() => setCurrentSlide((prev) => (prev + 1) % memories.length)}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover gpu-accelerated"
+                        style={{ willChange: 'transform' }}
                       />
                     ) : (
                       <img 
@@ -827,7 +842,8 @@ function App() {
             src="/thevideo.MP4"
             playsInline
             preload="auto"
-            className="w-full h-full object-contain"
+            className="w-full h-full object-contain gpu-accelerated"
+            style={{ willChange: 'transform' }}
             onPlay={() => setVideoPlaying(true)}
             onPause={() => setVideoPlaying(false)}
             onEnded={() => setVideoPlaying(false)}
