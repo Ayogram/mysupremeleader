@@ -123,16 +123,10 @@ function App() {
       // Unlock all video elements on first touch/click gesture
       if (videoRef1.current) {
         videoRef1.current.play()
-          .then(() => {
-            // Keep it playing since slide 0 is active on mount
-          })
           .catch(err => console.log("Video 1 unlock failed:", err));
       }
       if (videoRef2.current) {
         videoRef2.current.play()
-          .then(() => {
-            videoRef2.current?.pause();
-          })
           .catch(err => console.log("Video 2 unlock failed:", err));
       }
       if (videoRef.current) {
@@ -174,16 +168,10 @@ function App() {
 
   // Programmatic force-play logic on slide change (guarantees autoplay starts on iOS/iPadOS Safari)
   useEffect(() => {
-    // Pause all slide videos first
-    if (videoRef1.current) videoRef1.current.pause();
-    if (videoRef2.current) videoRef2.current.pause();
-
-    // Play only the active slide's video
+    // Play only the active slide's video (already playing natively, this ensures active is playing)
     if (currentSlide === 0 && videoRef1.current) {
-      videoRef1.current.currentTime = 0;
       videoRef1.current.play().catch(err => console.log("Slideshow video 1 play failed:", err));
     } else if (currentSlide === 1 && videoRef2.current) {
-      videoRef2.current.currentTime = 0;
       videoRef2.current.play().catch(err => console.log("Slideshow video 2 play failed:", err));
     }
   }, [currentSlide]);
@@ -361,16 +349,12 @@ function App() {
                 }, 100);
                 if (!isPlaying) togglePlay();
 
-                // Force play/unlock slideshow video 1
+                // Force play/unlock slideshow videos natively
                 if (videoRef1.current) {
-                  videoRef1.current.currentTime = 0;
                   videoRef1.current.play().catch(err => console.log("Slideshow video 1 play failed:", err));
                 }
-                // Unlock other videos
                 if (videoRef2.current) {
-                  videoRef2.current.play()
-                    .then(() => videoRef2.current?.pause())
-                    .catch(err => console.log("Video 2 unlock failed:", err));
+                  videoRef2.current.play().catch(err => console.log("Slideshow video 2 play failed:", err));
                 }
                 if (videoRef.current) {
                   videoRef.current.play()
@@ -414,11 +398,11 @@ function App() {
                       <video 
                         ref={idx === 0 ? videoRef1 : idx === 1 ? videoRef2 : null}
                         src={memory.image} 
-                        autoPlay={idx === 0}
+                        autoPlay
+                        loop
                         muted 
                         playsInline
                         preload="auto"
-                        onEnded={() => setCurrentSlide((prev) => (prev + 1) % memories.length)}
                         className="w-full h-full object-cover gpu-accelerated"
                         style={{ willChange: 'transform' }}
                       />
