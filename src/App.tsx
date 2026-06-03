@@ -19,6 +19,7 @@ function App() {
   const [videoPlaying, setVideoPlaying] = useState(false);
   const [backgroundAudioWasPlaying, setBackgroundAudioWasPlaying] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const slideshowVideoRef = useRef<HTMLVideoElement>(null);
 
   const hasInitializedAudio = useRef(false);
 
@@ -108,17 +109,26 @@ function App() {
   useEffect(() => {
     let timeout: any;
     const currentMemory = memories[currentSlide];
+    const isVideo = currentMemory.image.toLowerCase().endsWith('.mp4') || currentMemory.image.toLowerCase().endsWith('.mov');
     
-    // Only use a fixed timer if the current slide is an image
-    if (!currentMemory.image.toLowerCase().endsWith('.mp4') && !currentMemory.image.toLowerCase().endsWith('.mov')) {
-      timeout = setTimeout(() => {
-        setCurrentSlide((prev) => (prev + 1) % memories.length);
-      }, 10000); // 10 seconds for pictures
-    }
+    // Safety fallback timer for all slides (10s for images, 15s safety fallback for videos to prevent hanging on iOS)
+    timeout = setTimeout(() => {
+      setCurrentSlide((prev) => (prev + 1) % memories.length);
+    }, isVideo ? 15000 : 10000);
     
     return () => {
       if (timeout) clearTimeout(timeout);
     };
+  }, [currentSlide]);
+
+  // Programmatic force-play logic on slide change (guarantees autoplay starts on iOS/iPadOS Safari)
+  useEffect(() => {
+    const currentMemory = memories[currentSlide];
+    const isVideo = currentMemory.image.toLowerCase().endsWith('.mp4') || currentMemory.image.toLowerCase().endsWith('.mov');
+    if (isVideo && slideshowVideoRef.current) {
+      slideshowVideoRef.current.load();
+      slideshowVideoRef.current.play().catch(err => console.log("Slideshow play failed:", err));
+    }
   }, [currentSlide]);
 
   useEffect(() => {
@@ -329,6 +339,7 @@ function App() {
                 >
                   {memories[currentSlide].image.toLowerCase().endsWith('.mp4') || memories[currentSlide].image.toLowerCase().endsWith('.mov') ? (
                     <video 
+                      ref={slideshowVideoRef}
                       src={memories[currentSlide].image} 
                       autoPlay 
                       muted 
