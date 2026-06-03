@@ -24,14 +24,24 @@ function App() {
 
   const acceptProposal = () => {
     setProposalAccepted(true);
-    if (videoRef.current) {
-      videoRef.current.play()
+    const video = videoRef.current;
+    if (video) {
+      video.play()
         .then(() => {
-          videoRef.current.pause();
-          videoRef.current.currentTime = 0;
+          video.pause();
+          video.currentTime = 0;
         })
         .catch(err => console.log("Video unlock failed:", err));
     }
+  };
+
+  const [flippedReasons, setFlippedReasons] = useState<Record<number, boolean>>({});
+
+  const toggleReasonFlip = (idx: number) => {
+    setFlippedReasons(prev => ({
+      ...prev,
+      [idx]: !prev[idx]
+    }));
   };
 
   // iOS preloader and HTTP caching optimizer
@@ -422,7 +432,12 @@ function App() {
                   viewport={{ once: true }}
                   className="group perspective"
                 >
-                  <div className="relative w-full h-48 rounded-2xl transition-all duration-500 preserve-3d group-hover:rotate-y-180">
+                  <div 
+                    onClick={() => toggleReasonFlip(idx)}
+                    className={`relative w-full h-48 rounded-2xl transition-all duration-500 preserve-3d cursor-pointer ${
+                      flippedReasons[idx] ? 'rotate-y-180' : ''
+                    } group-hover:rotate-y-180`}
+                  >
                     {/* Front */}
                     <div className="absolute inset-0 backface-hidden glass-card flex flex-col items-center justify-center p-6 text-center border-brand-500/20 group-hover:border-brand-400/50 transition-colors">
                       <Heart className="w-8 h-8 text-brand-500/50 mb-4" />
