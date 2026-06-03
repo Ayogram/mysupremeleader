@@ -19,7 +19,8 @@ function App() {
   const [videoPlaying, setVideoPlaying] = useState(false);
   const [backgroundAudioWasPlaying, setBackgroundAudioWasPlaying] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const slideshowVideoRef = useRef<HTMLVideoElement>(null);
+  const videoRef1 = useRef<HTMLVideoElement>(null);
+  const videoRef2 = useRef<HTMLVideoElement>(null);
 
   const hasInitializedAudio = useRef(false);
 
@@ -45,26 +46,40 @@ function App() {
     }));
   };
 
-  // iOS preloader and HTTP caching optimizer
+  // iOS preloader and HTTP caching optimizer with bandwidth prioritization
   useEffect(() => {
-    const assets = [
-      '/D8.mp4',
-      '/D5.mp4',
-      '/D1.mp4',
-      '/thevideo.MP4',
-      '/do-better-blues.mp3',
-      '/firstd.jpg',
-      '/thesimplethings.jpg',
-      '/checking-out.jpg',
-      '/D10.jpg',
-      '/D2.jpg',
-      '/D20.jpg'
-    ];
-    assets.forEach(url => {
-      fetch(url, { cache: 'force-cache' })
-        .then(res => res.blob())
-        .catch(err => console.log(`Preloading failed for ${url}:`, err));
+    // 1. Load critical slide videos immediately for instant initial playback
+    const criticalAssets = ['/D8.mp4', '/D5.mp4'];
+    criticalAssets.forEach(url => {
+      fetch(url, { cache: 'force-cache' }).catch(err => console.log(url, err));
     });
+
+    // 2. Load audio after 3 seconds
+    const audioTimeout = setTimeout(() => {
+      fetch('/do-better-blues.mp3', { cache: 'force-cache' }).catch(err => console.log(err));
+    }, 3000);
+
+    // 3. Load large background assets after 7 seconds (when user is reading the timeline)
+    const lazyTimeout = setTimeout(() => {
+      const lazyAssets = [
+        '/thevideo.MP4',
+        '/D1.mp4',
+        '/firstd.jpg',
+        '/thesimplethings.jpg',
+        '/checking-out.jpg',
+        '/D10.jpg',
+        '/D2.jpg',
+        '/D20.jpg'
+      ];
+      lazyAssets.forEach(url => {
+        fetch(url, { cache: 'force-cache' }).catch(err => console.log(err));
+      });
+    }, 7000);
+
+    return () => {
+      clearTimeout(audioTimeout);
+      clearTimeout(lazyTimeout);
+    };
   }, []);
 
   const togglePlay = () => {
@@ -92,6 +107,30 @@ function App() {
           .then(() => setIsPlaying(true))
           .catch(err => console.log("Autoplay failed: ", err));
       }
+
+      // Unlock all video elements on first touch/click gesture
+      if (videoRef1.current) {
+        videoRef1.current.play()
+          .then(() => {
+            // Keep it playing since slide 0 is active on mount
+          })
+          .catch(err => console.log("Video 1 unlock failed:", err));
+      }
+      if (videoRef2.current) {
+        videoRef2.current.play()
+          .then(() => {
+            videoRef2.current?.pause();
+          })
+          .catch(err => console.log("Video 2 unlock failed:", err));
+      }
+      if (videoRef.current) {
+        videoRef.current.play()
+          .then(() => {
+            videoRef.current?.pause();
+          })
+          .catch(err => console.log("Proposal video unlock failed:", err));
+      }
+
       // Clean up after first interaction
       window.removeEventListener('click', handleFirstInteraction);
       window.removeEventListener('touchstart', handleFirstInteraction);
@@ -123,22 +162,23 @@ function App() {
 
   // Programmatic force-play logic on slide change (guarantees autoplay starts on iOS/iPadOS Safari)
   useEffect(() => {
-    const currentMemory = memories[currentSlide];
-    const isVideo = currentMemory.image.toLowerCase().endsWith('.mp4') || currentMemory.image.toLowerCase().endsWith('.mov');
-    if (isVideo && slideshowVideoRef.current) {
-      slideshowVideoRef.current.load();
-      slideshowVideoRef.current.play().catch(err => console.log("Slideshow play failed:", err));
+    // Pause all slide videos first
+    if (videoRef1.current) videoRef1.current.pause();
+    if (videoRef2.current) videoRef2.current.pause();
+
+    // Play only the active slide's video
+    if (currentSlide === 0 && videoRef1.current) {
+      videoRef1.current.currentTime = 0;
+      videoRef1.current.play().catch(err => console.log("Slideshow video 1 play failed:", err));
+    } else if (currentSlide === 1 && videoRef2.current) {
+      videoRef2.current.currentTime = 0;
+      videoRef2.current.play().catch(err => console.log("Slideshow video 2 play failed:", err));
     }
   }, [currentSlide]);
 
   useEffect(() => {
     if (proposalAccepted) {
-      // Step 1: Wait 4 seconds on the success screen
-      const successTimer = setTimeout(() => {
-        setCountdown(5);
-        setAcceptedStep('countdown');
-      }, 4000);
-      return () => clearTimeout(successTimer);
+      setAcceptedStep('success');
     } else {
       setAcceptedStep('success');
     }
@@ -306,6 +346,23 @@ function App() {
                   window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
                 }, 100);
                 if (!isPlaying) togglePlay();
+
+                // Force play/unlock slideshow video 1
+                if (videoRef1.current) {
+                  videoRef1.current.currentTime = 0;
+                  videoRef1.current.play().catch(err => console.log("Slideshow video 1 play failed:", err));
+                }
+                // Unlock other videos
+                if (videoRef2.current) {
+                  videoRef2.current.play()
+                    .then(() => videoRef2.current?.pause())
+                    .catch(err => console.log("Video 2 unlock failed:", err));
+                }
+                if (videoRef.current) {
+                  videoRef.current.play()
+                    .then(() => videoRef.current?.pause())
+                    .catch(err => console.log("Proposal video unlock failed:", err));
+                }
               }}
               className="px-8 py-4 bg-gradient-to-r from-brand-600 to-brand-800 rounded-full text-white font-medium tracking-wide shadow-[0_0_30px_rgba(124,58,237,0.5)] hover:shadow-[0_0_50px_rgba(124,58,237,0.8)] transition-shadow duration-300 flex items-center gap-3 mx-auto"
             >
@@ -328,49 +385,44 @@ function App() {
             </motion.h2>
             
             <div className="relative aspect-[16/9] md:aspect-[21/9] w-full rounded-3xl overflow-hidden glass-card">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={currentSlide}
-                  initial={{ opacity: 0, scale: 1.05 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 1.5, ease: "easeInOut" }}
-                  className="absolute inset-0"
-                >
-                  {memories[currentSlide].image.toLowerCase().endsWith('.mp4') || memories[currentSlide].image.toLowerCase().endsWith('.mov') ? (
-                    <video 
-                      ref={slideshowVideoRef}
-                      src={memories[currentSlide].image} 
-                      autoPlay 
-                      muted 
-                      playsInline
-                      preload="auto"
-                      onLoadedMetadata={(e) => {
-                        e.currentTarget.play().catch(err => console.log("Slideshow video play failed:", err));
-                      }}
-                      onEnded={() => setCurrentSlide((prev) => (prev + 1) % memories.length)}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <img 
-                      src={memories[currentSlide].image} 
-                      alt={memories[currentSlide].caption}
-                      className="w-full h-full object-cover"
-                    />
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-brand-900/20 to-transparent"></div>
-                  <div className="absolute bottom-10 left-0 right-0 text-center">
-                    <motion.p 
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.5, duration: 1 }}
-                      className="text-2xl md:text-4xl font-light text-white drop-shadow-lg italic"
-                    >
-                      "{memories[currentSlide].caption}"
-                    </motion.p>
+              {memories.map((memory, idx) => {
+                const isVideo = memory.image.toLowerCase().endsWith('.mp4') || memory.image.toLowerCase().endsWith('.mov');
+                const isActive = idx === currentSlide;
+                
+                return (
+                  <div
+                    key={memory.id}
+                    className={`absolute inset-0 transition-opacity duration-1000 ${
+                      isActive ? 'opacity-100 pointer-events-auto z-10 scale-100' : 'opacity-0 pointer-events-none z-0 scale-95'
+                    }`}
+                  >
+                    {isVideo ? (
+                      <video 
+                        ref={idx === 0 ? videoRef1 : idx === 1 ? videoRef2 : null}
+                        src={memory.image} 
+                        autoPlay={idx === 0}
+                        muted 
+                        playsInline
+                        preload="auto"
+                        onEnded={() => setCurrentSlide((prev) => (prev + 1) % memories.length)}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <img 
+                        src={memory.image} 
+                        alt={memory.caption}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-brand-900/20 to-transparent"></div>
+                    <div className="absolute bottom-10 left-0 right-0 text-center px-4">
+                      <p className="text-2xl md:text-4xl font-light text-white drop-shadow-lg italic">
+                        "{memory.caption}"
+                      </p>
+                    </div>
                   </div>
-                </motion.div>
-              </AnimatePresence>
+                );
+              })}
               
               <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-20">
                 {memories.map((_, idx) => (
@@ -721,8 +773,12 @@ function App() {
                         animate={{ opacity: 1 }}
                         transition={{ delay: 2.5 }}
                         onClick={() => {
-                          setCountdown(5);
-                          setAcceptedStep('countdown');
+                          setAcceptedStep('video');
+                          if (videoRef.current) {
+                            videoRef.current.play()
+                              .then(() => setVideoPlaying(true))
+                              .catch(err => console.log("Video play failed:", err));
+                          }
                         }}
                         className="px-6 py-3 bg-brand-600/50 border border-brand-400/30 rounded-full text-white font-medium hover:bg-brand-500/80 transition-colors shadow-[0_0_15px_rgba(139,92,246,0.3)] text-sm"
                       >
@@ -826,7 +882,7 @@ function App() {
         </div>
 
         {/* Background preloading for all slideshow and transition videos to make them load instantly */}
-        <div className="hidden" aria-hidden="true">
+        <div className="absolute w-[1px] h-[1px] p-0 -m-[1px] overflow-hidden border-0 opacity-0 pointer-events-none" aria-hidden="true">
           {memories.map((m) => (
             (m.image.toLowerCase().endsWith('.mp4') || m.image.toLowerCase().endsWith('.mov')) && (
               <video key={`preload-${m.id}`} src={m.image} preload="auto" muted playsInline />
